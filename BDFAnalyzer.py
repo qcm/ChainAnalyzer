@@ -10,6 +10,11 @@
 # Notifications and licenses are retained for attribution purposes only
 #===============================================================================
 
+#--------------
+import pyqtgraph as pg
+from pyqtgraph.Qt import QtGui
+from array import array
+import numpy as np
 
 Description = """
 [Description]:
@@ -29,18 +34,13 @@ BIN/wlan_proc/wlan/halphy_tools/host/bdfUtil/qca61x0/bdf
 BDFAnalyzer.py input.txt
 """
 
-
 fullpdadc_val_list = [] # y-axis
 fullpwr_val_list = [] # x-axis
 fullpwr_tag_list = [] 
 
+win = pg.GraphicsWindow(title="Chain Analyzer: chain 0 (RED) chain 1 (GREEN)")
+win.resize(1000,600)
 def backup_calibration(fin):
-	print "fullpwr_tag: "
-	print len(fullpwr_tag_list)
-	print "fullpwr_val: "
-	print len(fullpwr_val_list)
-	print "fullpdadc_val: "
-	print len(fullpdadc_val_list)
 	for index in range(len(fullpwr_tag_list)):
 		fin.write(fullpwr_tag_list[index])
 		fin.write(" ")
@@ -49,6 +49,30 @@ def backup_calibration(fin):
 		fin.write(fullpdadc_val_list[index])
 		fin.write("\n")
 
+def plot_render(band, channel):
+	index_lower = 0
+	index_upper = 0
+	X = []
+	Y = []
+	if band == "G": # 2.4G
+		index_lower = channel * 20
+		index_upper = (channel+1) * 20 
+	elif band == "A": # 5G
+		index_lower = 280 + channel * 20
+		index_upper = 280 + (channel+1) * 20 
+	else:
+		print "Plot render error\n"
+	
+	for i in range(index_lower, index_upper):
+		X.append(int(fullpwr_val_list[i], 10))
+		Y.append(int(fullpdadc_val_list[i], 10))
+
+	title_description = "Channel " + str(channel)
+	pp = win.addPlot(title = title_description)
+	pp.plot(X[0:10],Y[0:10], title="Chain 0", pen=(255,0,0)) # chain 0 as red line
+	pp.plot(X[10:20],Y[10:20], title="Chain 1", pen=(0,255,0)) # chain 1 as green line
+	pp.showGrid(x=True, y=True)
+		
 
 def main():
 	global fullpwr_tag_list, fullpwr_val_list, fullpdadc_val_list
@@ -68,20 +92,15 @@ def main():
 	backup_calibration(clpc)
 	bdf.close()
 	clpc.close()
+	# draw plot
+	plot_render('A', 7)
+	plot_render('A', 8)
+	win.nextRow()
+	plot_render('A', 9)
+	plot_render('A', 10)
+	if __name__ == '__main__':
+		import sys
+		if sys.flags.interactive != 1 or not hasattr(QtCore, 'PYQT_VERSION'):
+			QtGui.QApplication.exec_()
 
 main()
-#import numpy as np1
-#import pyqtgraph as pg1
-#
-#data = np1.random.normal(size=1000)
-#pg1.plot(data, title="Simplest possible plotting example")
-#
-#data = np1.random.normal(size=(500,500))
-#pg1.image(data, title="Simplest possible image example")
-#
-#
-### Start Qt event loop unless running in interactive mode or using pyside.
-#if __name__ == '__main__':
-#    import sys
-#    if sys.flags.interactive != 1 or not hasattr(QtCore, 'PYQT_VERSION'):
-#        pg1.QtGui.QApplication.exec_()
